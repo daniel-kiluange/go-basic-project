@@ -6,24 +6,28 @@ import (
 	"log"
 )
 
-func main() {
-	p := database.PostgresInstance()
+func execDatabase(p *database.Postgres, done chan string) {
 	rows, err := p.Db.Query("SELECT current_database();")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer rows.Close()
-
-	var (
-		currentDatabase string
-	)
-	fmt.Println(rows.Columns())
+	var databaseName string
 
 	for rows.Next() {
-		rows.Scan(&currentDatabase)
+		rows.Scan(&databaseName)
 	}
 
-	fmt.Println(currentDatabase)
+	rows.Close()
+
+	done <- databaseName
+}
+
+func main() {
+	done := make(chan string)
+	p := database.PostgresInstance()
+	go execDatabase(p, done)
+	fmt.Println(<-done)
+
 }
